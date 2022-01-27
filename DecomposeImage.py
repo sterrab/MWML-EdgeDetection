@@ -33,7 +33,7 @@ for pix_x in range(width):
             edge_xy[pix_y, pix_x] = 255
 
 # Display Edges
-cv2.imwrite('peppers_edge_xy_f' + str(10*f) + '.png', edge_xy)
+cv2.imwrite('peppers_edge_xy_f' + str('{:.0f}'.format(10*f)) + '.png', edge_xy)
 cv2.imshow("Edges Gamma", edge_xy)
 cv2.waitKey(0)
 
@@ -50,7 +50,7 @@ for pix_x in range(width):
             edge_y[pix_y, pix_x] = 255
 
 # Display Edges
-cv2.imwrite('peppers_edge_y_f' + str(10*f) + '.png', edge_y)
+cv2.imwrite('peppers_edge_y_f' + str('{:.0f}'.format(10*f)) + '.png', edge_y)
 cv2.imshow("Edges Alpha", edge_y)
 cv2.waitKey(0)
 
@@ -67,11 +67,25 @@ for pix_x in range(width):
             edge_x[pix_y, pix_x] = 255
 
 # Display Edges
-cv2.imwrite('peppers_edge_x_f' + str(10*f) + '.png', edge_x)
+cv2.imwrite('peppers_edge_x_f' + str('{:.0f}'.format(10*f)) + '.png', edge_x)
 cv2.imshow("Edges Beta", edge_x)
 cv2.waitKey(0)
 
 
+# Combo alpha - beta
+edge_x_y = np.clip(edge_x + edge_y, 0, 255)
+# Display Edges
+cv2.imwrite('peppers_edge_x_y_f' + str('{:.0f}'.format(10*f)) + '.png', edge_x_y)
+cv2.imshow("Edges Alpha + Beta", edge_x_y)
+cv2.waitKey(0)
 
-print(wavelets_y)
+# Combo alpha - beta - gamma
+edge_x_y_xy = np.clip(edge_x + edge_y + edge_xy, 0, 255)
+# Display Edges
+cv2.imwrite('peppers_edge_x_y_xy_f' + str('{:.0f}'.format(10*f)) + '.png', edge_x_y_xy)
+cv2.imshow("Edges Alpha + Beta + Gamma", edge_x_y_xy)
+cv2.waitKey(0)
+
+
+
 
