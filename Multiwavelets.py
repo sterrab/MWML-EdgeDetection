@@ -36,14 +36,102 @@ def calculate_multiwavelet_coeffs(DG_coeffs, degree, width, height):
     # Scaling Coefficients
     scaling_coeffs = 1 / (np.sqrt(width * height)) * DG_coeffs
 
-    # QMF transformation matrices, verified using quadrature_mirror_filters() function
+    # Initializing Multiwavelets Coefficient Matrices
+    d_alpha = np.zeros((height, width))
+    d_beta = np.zeros((height, width))
+    d_gamma = np.zeros((height, width))
+
     if degree == 0:
-        H = np.ones((2,1,1)) * 1/np.sqrt(2)
+        # QMF transformation matrices, verified using quadrature_mirror_filters() function
+        H = np.ones((2, 1, 1)) * 1 / np.sqrt(2)
         G = H.copy()
-        G[0, 0, 0] = -G[0,0,0]
-    elif degree == 1:
-        H = np.zeros((2,degree+1,degree+1))
-        H[:, 0, 0] = 1/np.sqrt(2) * np.ones(2)
+        G[0, 0, 0] = -G[0, 0, 0]
+
+        for pix_y in range(int(height / 2)):
+            for pix_x in range(int(width / 2)):
+                # Alpha Modes - Discontinuities in Y
+                d_alpha[2 * pix_y, 2 * pix_x] = sum(sum(H[itilde, 0, 0] * G[jtilde, 0, 0]
+                                                                * scaling_coeffs[
+                                                                    0, 0, 2 * pix_y + jtilde, 2 * pix_x + itilde]
+                                                                for itilde in range(2))
+                                                            for jtilde in range(2))
+
+                d_alpha[2 * pix_y, 2 * pix_x + 1] = d_alpha[2 * pix_y, 2 * pix_x]
+
+                if pix_y == int(height / 2 - 1):
+                    d_alpha[2 * pix_y + 1, 2 * pix_x] = d_alpha[2 * pix_y, 2 * pix_x]
+                    d_alpha[2 * pix_y + 1, 2 * pix_x + 1] = d_alpha[2 * pix_y + 1, 2 * pix_x]
+                else:
+                    d_alpha[2 * pix_y + 1, 2 * pix_x] = sum(sum(H[itilde, 0, 0] * G[jtilde, 0, 0]
+                                                                        * scaling_coeffs[
+                                                                            0, 0, 2 * pix_y + jtilde + 1, 2 * pix_x + itilde]
+                                                                        for itilde in range(2))
+                                                                    for jtilde in range(2))
+
+                    d_alpha[2 * pix_y + 1, 2 * pix_x + 1] = d_alpha[2 * pix_y + 1, 2 * pix_x]
+
+                # Beta Modes - Discontinuities in X
+                d_beta[2 * pix_y, 2 * pix_x] = sum(sum(G[itilde, 0, 0] * H[jtilde, 0 , 0]
+                                                               * scaling_coeffs[
+                                                                   0, 0, 2 * pix_y + jtilde, 2 * pix_x + itilde]
+                                                               for itilde in range(2))
+                                                           for jtilde in range(2))
+
+                d_beta[2 * pix_y + 1, 2 * pix_x] = d_beta[2 * pix_y, 2 * pix_x]
+
+                if pix_x == int(width / 2 - 1):
+                    d_beta[2 * pix_y, 2 * pix_x + 1] = d_beta[2 * pix_y, 2 * pix_x]
+                    d_beta[2 * pix_y + 1, 2 * pix_x + 1] = d_beta[2 * pix_y, 2 * pix_x + 1]
+                else:
+                    d_beta[2 * pix_y, 2 * pix_x + 1] = sum(sum(G[itilde, 0, 0] * H[jtilde, 0, 0]
+                                                                       * scaling_coeffs[
+                                                                           0, 0, 2 * pix_y + jtilde, 2 * pix_x + itilde + 1]
+                                                                       for itilde in range(2))
+                                                                   for jtilde in range(2))
+
+                    d_beta[2 * pix_y + 1, 2 * pix_x + 1] = d_beta[2 * pix_y, 2 * pix_x + 1]
+
+                # Gamma Modes - Discontinuities in XY
+                d_gamma[2 * pix_y, 2 * pix_x] = sum(sum(G[itilde, 0, 0] * G[jtilde, 0, 0]
+                                                                * scaling_coeffs[
+                                                                    0, 0, 2 * pix_y + jtilde, 2 * pix_x + itilde]
+                                                                for itilde in range(2))
+                                                            for jtilde in range(2))
+
+                if pix_x == int(width / 2 - 1):
+                    d_gamma[2 * pix_y, 2 * pix_x + 1] = d_gamma[2 * pix_y, 2 * pix_x]
+                else:
+                    d_gamma[2 * pix_y, 2 * pix_x + 1] = sum(sum(G[itilde, 0, 0] * G[jtilde, 0, 0]
+                                                                        * scaling_coeffs[
+                                                                            0, 0, 2 * pix_y + jtilde, 2 * pix_x + itilde + 1]
+                                                                        for itilde in range(2))
+                                                                    for jtilde in range(2))
+
+                if pix_y == int(height / 2 - 1):
+                    d_gamma[2 * pix_y + 1, 2 * pix_x] = d_gamma[2 * pix_y, 2 * pix_x]
+                else:
+                    d_gamma[2 * pix_y + 1, 2 * pix_x] = sum(sum(G[itilde, 0, 0] * G[jtilde, 0, 0]
+                                                                        * scaling_coeffs[
+                                                                            0, 0, 2 * pix_y + jtilde + 1, 2 * pix_x + itilde]
+                                                                        for itilde in range(2))
+                                                                    for jtilde in range(2))
+
+                if (pix_x == int(width / 2 - 1)) and (pix_y == int(height / 2 - 1)):
+                    d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = d_gamma[2 * pix_y, 2 * pix_x]
+                elif pix_x == int(width / 2 - 1):
+                    d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = d_gamma[2 * pix_y + 1, 2 * pix_x]
+                elif pix_y == int(height / 2 - 1):
+                    d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = d_gamma[2 * pix_y, 2 * pix_x + 1]
+                else:
+                    d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = sum(sum(G[itilde, 0, 0] * G[jtilde, 0, 0]
+                                                                            * scaling_coeffs[
+                                                                                0, 0, 2 * pix_y + jtilde + 1, 2 * pix_x + itilde + 1]
+                                                                            for itilde in range(2))
+                                                                        for jtilde in range(2))
+    else:
+        # QMF transformation matrices, verified using quadrature_mirror_filters() function
+        H = np.zeros((2, degree + 1, degree + 1))
+        H[:, 0, 0] = 1 / np.sqrt(2) * np.ones(2)
         H[:, 1, 0] = 0.61237243569579447033 * np.array([-1, 1])
         H[:, 1, 1] = 0.35355339059327373086 * np.ones(2)
 
@@ -51,108 +139,101 @@ def calculate_multiwavelet_coeffs(DG_coeffs, degree, width, height):
         G[:, 0, 1] = 1 / np.sqrt(2) * np.array([-1, 1])
         G[:, 1, 0] = 0.35355339059327373086 * np.array([1, -1])
         G[:, 1, 1] = 0.61237243569579447033 * np.ones(2)
-    else:
-        H, G = quadrature_mirror_filters(degree)
 
-    # Initializing Multiwavelets Coefficient Matrices
-    d_alpha = np.zeros((height, width))
-    d_beta = np.zeros((height, width))
-    d_gamma = np.zeros((height, width))
-
-    for pix_y in range(int(height / 2)):
-        for pix_x in range(int(width / 2)):
-            # Alpha Modes - Discontinuities in Y
-            d_alpha[2 * pix_y, 2 * pix_x] = sum(sum(sum(sum(H[itilde, 0, rx] * G[jtilde, degree, ry]
-                                                    * scaling_coeffs[rx, ry, 2 * pix_y + jtilde, 2 * pix_x + itilde]
-                                                    for itilde in range(2))
-                                                for jtilde in range(2))
-                                                for rx in range(degree+1))
-                                                for ry in range(degree + 1))
+        for pix_y in range(int(height / 2)):
+            for pix_x in range(int(width / 2)):
+                # Alpha Modes - Discontinuities in Y
+                d_alpha[2 * pix_y, 2 * pix_x] = sum(sum(sum(sum(H[itilde, 0, rx] * G[jtilde, degree, ry]
+                                                        * scaling_coeffs[rx, ry, 2 * pix_y + jtilde, 2 * pix_x + itilde]
+                                                        for itilde in range(2))
+                                                    for jtilde in range(2))
+                                                    for rx in range(degree+1))
+                                                    for ry in range(degree + 1))
 
 
-            d_alpha[2 * pix_y, 2 * pix_x + 1] = d_alpha[2 * pix_y, 2 * pix_x]
+                d_alpha[2 * pix_y, 2 * pix_x + 1] = d_alpha[2 * pix_y, 2 * pix_x]
 
-            if pix_y == int(height / 2 - 1):
-                d_alpha[2 * pix_y + 1, 2 * pix_x] = d_alpha[2 * pix_y, 2 * pix_x]
-                d_alpha[2 * pix_y + 1, 2 * pix_x + 1] = d_alpha[2 * pix_y + 1, 2 * pix_x]
-            else:
-                d_alpha[2 * pix_y + 1, 2 * pix_x] = sum(sum(sum(sum(H[itilde, 0, rx] * G[jtilde, degree, ry]
-                                                    * scaling_coeffs[rx, ry, 2 * pix_y + jtilde + 1, 2 * pix_x + itilde]
-                                                    for itilde in range(2))
-                                                for jtilde in range(2))
-                                                for rx in range(degree+1))
-                                                for ry in range(degree + 1))
+                if pix_y == int(height / 2 - 1):
+                    d_alpha[2 * pix_y + 1, 2 * pix_x] = d_alpha[2 * pix_y, 2 * pix_x]
+                    d_alpha[2 * pix_y + 1, 2 * pix_x + 1] = d_alpha[2 * pix_y + 1, 2 * pix_x]
+                else:
+                    d_alpha[2 * pix_y + 1, 2 * pix_x] = sum(sum(sum(sum(H[itilde, 0, rx] * G[jtilde, degree, ry]
+                                                        * scaling_coeffs[rx, ry, 2 * pix_y + jtilde + 1, 2 * pix_x + itilde]
+                                                        for itilde in range(2))
+                                                    for jtilde in range(2))
+                                                    for rx in range(degree+1))
+                                                    for ry in range(degree + 1))
 
-                d_alpha[2 * pix_y + 1, 2 * pix_x + 1] = d_alpha[2 * pix_y + 1, 2 * pix_x]
+                    d_alpha[2 * pix_y + 1, 2 * pix_x + 1] = d_alpha[2 * pix_y + 1, 2 * pix_x]
 
-            # Beta Modes - Discontinuities in X
-            d_beta[2 * pix_y, 2 * pix_x] = sum(sum(sum(sum(G[itilde, degree, rx] * H[jtilde, 0, ry]
-                                                   * scaling_coeffs[rx, ry, 2 * pix_y + jtilde, 2 * pix_x + itilde]
-                                                   for itilde in range(2))
-                                               for jtilde in range(2))
-                                                for rx in range(degree + 1))
-                                                for ry in range(degree + 1))
-
-            d_beta[2 * pix_y + 1, 2 * pix_x] = d_beta[2 * pix_y, 2 * pix_x]
-
-            if pix_x == int(width / 2 - 1):
-                d_beta[2 * pix_y, 2 * pix_x + 1] = d_beta[2 * pix_y, 2 * pix_x]
-                d_beta[2 * pix_y + 1, 2 * pix_x + 1] = d_beta[2 * pix_y, 2 * pix_x + 1]
-            else:
-                d_beta[2 * pix_y, 2 * pix_x + 1] = sum(sum(sum(sum(G[itilde, degree, rx] * H[jtilde, 0, ry]
-                                                   * scaling_coeffs[rx, ry, 2 * pix_y + jtilde, 2 * pix_x + itilde +1]
-                                                   for itilde in range(2))
-                                               for jtilde in range(2))
-                                                for rx in range(degree + 1))
-                                                for ry in range(degree + 1))
-
-                d_beta[2 * pix_y + 1, 2 * pix_x + 1] = d_beta[2 * pix_y, 2 * pix_x + 1]
-
-            # Gamma Modes - Discontinuities in XY
-            d_gamma[2 * pix_y, 2 * pix_x] = sum(sum(sum(sum(G[itilde, degree, rx]
-                                                    * G[jtilde, degree, ry]
-                                                    * scaling_coeffs[rx, ry, 2 * pix_y + jtilde, 2 * pix_x + itilde]
-                                                    for itilde in range(2))
-                                                for jtilde in range(2))
+                # Beta Modes - Discontinuities in X
+                d_beta[2 * pix_y, 2 * pix_x] = sum(sum(sum(sum(G[itilde, degree, rx] * H[jtilde, 0, ry]
+                                                       * scaling_coeffs[rx, ry, 2 * pix_y + jtilde, 2 * pix_x + itilde]
+                                                       for itilde in range(2))
+                                                   for jtilde in range(2))
                                                     for rx in range(degree + 1))
-                                                for ry in range(degree + 1))
+                                                    for ry in range(degree + 1))
 
-            if pix_x == int(width / 2 - 1):
-                d_gamma[2 * pix_y, 2 * pix_x + 1] = d_gamma[2 * pix_y, 2 * pix_x]
-            else:
-                d_gamma[2 * pix_y, 2 * pix_x + 1] = sum(sum(sum(sum(G[itilde, degree, rx]
-                                                    * G[jtilde, degree, ry]
-                                                    * scaling_coeffs[rx, ry, 2 * pix_y + jtilde, 2 * pix_x + itilde + 1]
-                                                    for itilde in range(2))
-                                                for jtilde in range(2))
-                                                    for rx in range(degree + 1))
-                                                for ry in range(degree + 1))
+                d_beta[2 * pix_y + 1, 2 * pix_x] = d_beta[2 * pix_y, 2 * pix_x]
 
-            if pix_y == int(height / 2 - 1):
-                d_gamma[2 * pix_y + 1, 2 * pix_x] = d_gamma[2 * pix_y, 2 * pix_x]
-            else:
-                d_gamma[2 * pix_y + 1, 2 * pix_x] = sum(sum(sum(sum(G[itilde, degree, rx]
-                                                    * G[jtilde, degree, ry]
-                                                    * scaling_coeffs[rx, ry, 2 * pix_y + jtilde + 1, 2 * pix_x + itilde]
-                                                    for itilde in range(2))
-                                                for jtilde in range(2))
+                if pix_x == int(width / 2 - 1):
+                    d_beta[2 * pix_y, 2 * pix_x + 1] = d_beta[2 * pix_y, 2 * pix_x]
+                    d_beta[2 * pix_y + 1, 2 * pix_x + 1] = d_beta[2 * pix_y, 2 * pix_x + 1]
+                else:
+                    d_beta[2 * pix_y, 2 * pix_x + 1] = sum(sum(sum(sum(G[itilde, degree, rx] * H[jtilde, 0, ry]
+                                                       * scaling_coeffs[rx, ry, 2 * pix_y + jtilde, 2 * pix_x + itilde +1]
+                                                       for itilde in range(2))
+                                                   for jtilde in range(2))
                                                     for rx in range(degree + 1))
-                                                for ry in range(degree + 1))
+                                                    for ry in range(degree + 1))
 
-            if (pix_x == int(width / 2 - 1)) and (pix_y == int(height / 2 - 1)):
-                d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = d_gamma[2 * pix_y, 2 * pix_x]
-            elif pix_x == int(width / 2 - 1):
-                d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = d_gamma[2 * pix_y + 1, 2 * pix_x]
-            elif pix_y == int(height / 2 - 1):
-                d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = d_gamma[2 * pix_y, 2 * pix_x + 1]
-            else:
-                d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = sum(sum(sum(sum(G[itilde, degree, rx]
-                                                    * G[jtilde, degree, ry]
-                                                    * scaling_coeffs[rx, ry, 2 * pix_y + jtilde + 1, 2 * pix_x + itilde + 1]
-                                                    for itilde in range(2))
-                                                for jtilde in range(2))
-                                                    for rx in range(degree + 1))
-                                                for ry in range(degree + 1))
+                    d_beta[2 * pix_y + 1, 2 * pix_x + 1] = d_beta[2 * pix_y, 2 * pix_x + 1]
+
+                # Gamma Modes - Discontinuities in XY
+                d_gamma[2 * pix_y, 2 * pix_x] = sum(sum(sum(sum(G[itilde, degree, rx]
+                                                        * G[jtilde, degree, ry]
+                                                        * scaling_coeffs[rx, ry, 2 * pix_y + jtilde, 2 * pix_x + itilde]
+                                                        for itilde in range(2))
+                                                    for jtilde in range(2))
+                                                        for rx in range(degree + 1))
+                                                    for ry in range(degree + 1))
+
+                if pix_x == int(width / 2 - 1):
+                    d_gamma[2 * pix_y, 2 * pix_x + 1] = d_gamma[2 * pix_y, 2 * pix_x]
+                else:
+                    d_gamma[2 * pix_y, 2 * pix_x + 1] = sum(sum(sum(sum(G[itilde, degree, rx]
+                                                        * G[jtilde, degree, ry]
+                                                        * scaling_coeffs[rx, ry, 2 * pix_y + jtilde, 2 * pix_x + itilde + 1]
+                                                        for itilde in range(2))
+                                                    for jtilde in range(2))
+                                                        for rx in range(degree + 1))
+                                                    for ry in range(degree + 1))
+
+                if pix_y == int(height / 2 - 1):
+                    d_gamma[2 * pix_y + 1, 2 * pix_x] = d_gamma[2 * pix_y, 2 * pix_x]
+                else:
+                    d_gamma[2 * pix_y + 1, 2 * pix_x] = sum(sum(sum(sum(G[itilde, degree, rx]
+                                                        * G[jtilde, degree, ry]
+                                                        * scaling_coeffs[rx, ry, 2 * pix_y + jtilde + 1, 2 * pix_x + itilde]
+                                                        for itilde in range(2))
+                                                    for jtilde in range(2))
+                                                        for rx in range(degree + 1))
+                                                    for ry in range(degree + 1))
+
+                if (pix_x == int(width / 2 - 1)) and (pix_y == int(height / 2 - 1)):
+                    d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = d_gamma[2 * pix_y, 2 * pix_x]
+                elif pix_x == int(width / 2 - 1):
+                    d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = d_gamma[2 * pix_y + 1, 2 * pix_x]
+                elif pix_y == int(height / 2 - 1):
+                    d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = d_gamma[2 * pix_y, 2 * pix_x + 1]
+                else:
+                    d_gamma[2 * pix_y + 1, 2 * pix_x + 1] = sum(sum(sum(sum(G[itilde, degree, rx]
+                                                        * G[jtilde, degree, ry]
+                                                        * scaling_coeffs[rx, ry, 2 * pix_y + jtilde + 1, 2 * pix_x + itilde + 1]
+                                                        for itilde in range(2))
+                                                    for jtilde in range(2))
+                                                        for rx in range(degree + 1))
+                                                    for ry in range(degree + 1))
 
     return d_alpha, d_beta, d_gamma
 
