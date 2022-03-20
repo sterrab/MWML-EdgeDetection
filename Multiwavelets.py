@@ -36,8 +36,25 @@ def calculate_multiwavelet_coeffs(DG_coeffs, degree, width, height):
     # Scaling Coefficients
     scaling_coeffs = 1 / (np.sqrt(width * height)) * DG_coeffs
 
-    H, G = quadrature_mirror_filters(degree)
+    # QMF transformation matrices, verified using quadrature_mirror_filters() function
+    if degree == 0:
+        H = np.ones((2,1,1)) * 1/np.sqrt(2)
+        G = H.copy()
+        G[0, 0, 0] = -G[0,0,0]
+    elif degree == 1:
+        H = np.zeros((2,degree+1,degree+1))
+        H[:, 0, 0] = 1/np.sqrt(2) * np.ones(2)
+        H[:, 1, 0] = 0.61237243569579447033 * np.array([-1, 1])
+        H[:, 1, 1] = 0.35355339059327373086 * np.ones(2)
 
+        G = np.zeros((2, degree + 1, degree + 1))
+        G[:, 0, 1] = 1 / np.sqrt(2) * np.array([-1, 1])
+        G[:, 1, 0] = 0.35355339059327373086 * np.array([1, -1])
+        G[:, 1, 1] = 0.61237243569579447033 * np.ones(2)
+    else:
+        H, G = quadrature_mirror_filters(degree)
+
+    # Initializing Multiwavelets Coefficient Matrices
     d_alpha = np.zeros((height, width))
     d_beta = np.zeros((height, width))
     d_gamma = np.zeros((height, width))
